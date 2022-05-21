@@ -4,6 +4,7 @@
 #include <chrono>
 #include <filesystem>
 #include <memory>
+#include <queue>
 #include <string>
 #include <vector>
 
@@ -43,12 +44,41 @@ int main(int argc, char** argv) {
   }
 
   // Recursively iterate through directory and enqueue filenames
-  for (auto const& dir_entry : fs::recursive_directory_iterator(root_dir)) {
-    std::shared_ptr<FileObject> fileobj = std::make_shared<FileObject>(dir_entry);
+  //
+  // Ideally this would "just work" with recursive_directory_iterator.
+  // recursive_directory_iterator would eventually reach directory it
+  // could not read and would stop iterating at that point (at least
+  // in my environment).
+  //
+  // This implements a basic breadth first search with non-recursive
+  // directory_iterator and a queue.
 
-    for (auto w : workers) {
-      w->enqueue(fileobj);
+  auto ec = std::error_code();
+
+  std::queue<fs::path> dirQueue;
+  dirQueue.push(root_dir);
+
+  while (!dirQueue.empty()) {
+    auto dir = dirQueue.front();
+
+    for (auto const& dir_entry : fs::directory_iterator(dir, fs::directory_options::skip_permission_denied, ec)) {
+      if (ec) {
+        continue;
+      }
+
+      if (fs::is_directory(dir_entry.path())) {
+        dirQueue.push(dir_entry.path());
+        continue;
+      }
+
+      std::shared_ptr<FileObject> fileobj = std::make_shared<FileObject>(dir_entry);
+
+      for (auto w : workers) {
+        w->enqueue(fileobj);
+      }
     }
+
+    dirQueue.pop();
   }
 
   // Sleep to allow threads to finish remaining work
