@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 #include "SubStringWorker.h"
 
 void SubStringWorker::worker(SubStringWorker* w) {

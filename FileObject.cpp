@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 #include "FileObject.h"
 
 FileObject::FileObject(std::filesystem::directory_entry de) : mDirEntry(de) {}
