@@ -2,11 +2,14 @@
 #include <stdlib.h>
 
 #include <chrono>
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "SubStringWorker.h"
+
+namespace fs = std::filesystem;
 
 void print_usage() {
   printf("file-finder <dir> <substring1>[<substring2> [<substring3>]...]\n");
@@ -18,41 +21,45 @@ int main(int argc, char** argv) {
     exit(0);
   }
 
-  // get the root directory from args
+  // Get the root directory from args
   char* const root_dir = argv[1];
 
-  // get search substrings from args
+  if (!fs::is_directory(fs::status(root_dir))) {
+    printf("Error: %s is not a directory!\n", root_dir);
+    print_usage();
+    exit(0);
+  }
+
+  // Get search substrings from args
   const int search_substrs_count = argc - 2;
   char* const* const search_substrs = &argv[2];
 
+  // Create workers
   std::vector<SubStringWorker*> workers;
 
   for (int i = 0; i < search_substrs_count; ++i) {
     workers.push_back(new SubStringWorker(search_substrs[i]));
   }
 
-  char const* const filenames[] = {
-    "word.exe",
-    "calc.exe",
-    "sudo",
-    "taxes.docx",
-    "private_notes.txt"
-  };
-
-  for (auto f : filenames) {
-    std::shared_ptr<FileObject> filename = std::make_shared<FileObject>(std::string(f));
+  // Recursively iterate through directory and enqueue filenames
+  for (auto const& dir_entry : fs::recursive_directory_iterator(root_dir)) {
+    std::string filename = dir_entry.path().filename();
+    std::shared_ptr<FileObject> fileobj = std::make_shared<FileObject>(filename);
 
     for (auto w : workers) {
-      w->enqueue(filename);
+      w->enqueue(fileobj);
     }
   }
 
+  // Sleep to allow threads to finish remaining work
   std::this_thread::sleep_for(std::chrono::seconds(1));
 
+  // Kill workers
   for (auto w : workers) {
     w->kill();
   }
 
+  // Wait for threads to exit
   for (auto w : workers) {
     w->join();
   }
