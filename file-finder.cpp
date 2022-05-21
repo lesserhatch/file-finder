@@ -18,7 +18,7 @@ namespace fs = std::filesystem;
 bool exitRequested = false;
 
 void print_usage() {
-  printf("file-finder <dir> <substring1>[<substring2> [<substring3>]...]\n");
+  std::cout << "file-finder <dir> <substring1>[<substring2> [<substring3>]...]" << std::endl;
 }
 
 void console_parser(MatchContainer* mc) {
@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
   char* const root_dir = argv[1];
 
   if (!fs::is_directory(fs::status(root_dir))) {
-    printf("Error: %s is not a directory!\n", root_dir);
+    std::cout << "Error: " << root_dir << " is not a directory!" << std::endl;
     print_usage();
     exit(0);
   }
