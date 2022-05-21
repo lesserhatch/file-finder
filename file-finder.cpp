@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <filesystem>
+#include <iostream>
 #include <memory>
 #include <queue>
 #include <string>
@@ -14,8 +15,26 @@
 
 namespace fs = std::filesystem;
 
+bool exitRequested = false;
+
 void print_usage() {
   printf("file-finder <dir> <substring1>[<substring2> [<substring3>]...]\n");
+}
+
+void console_parser(MatchContainer* mc) {
+  std::string command;
+
+  // Run until exit requested or command is exit
+  while (!(exitRequested || command == "exit")) {
+    if (command == "dump") {
+      mc->dumpMatches();
+    }
+    getline(std::cin, command);
+  }
+
+  if (command == "exit") {
+    exitRequested = true;
+  }
 }
 
 int main(int argc, char** argv) {
@@ -23,6 +42,12 @@ int main(int argc, char** argv) {
     print_usage();
     exit(0);
   }
+
+  // Create match container
+  auto mc = MatchContainer();
+
+  // Start console
+  auto console = std::thread(console_parser, &mc);
 
   // Get the root directory from args
   char* const root_dir = argv[1];
@@ -36,9 +61,6 @@ int main(int argc, char** argv) {
   // Get search substrings from args
   const int search_substrs_count = argc - 2;
   char* const* const search_substrs = &argv[2];
-
-  // Create match container
-  auto mc = MatchContainer();
 
   // Create workers
   std::vector<SubStringWorker*> workers;
@@ -66,7 +88,8 @@ int main(int argc, char** argv) {
   std::queue<fs::path> dirQueue;
   dirQueue.push(root_dir);
 
-  while (!dirQueue.empty()) {
+  // Run until exit is requested or queue is empty
+  while (!(exitRequested || dirQueue.empty())) {
     auto dir = dirQueue.front();
 
     for (auto const& dir_entry : fs::directory_iterator(dir, fs::directory_options::skip_permission_denied, ec)) {
@@ -86,25 +109,19 @@ int main(int argc, char** argv) {
       }
     }
 
-    // Print matches per directory
     mc.dumpMatches();
 
     dirQueue.pop();
   }
 
-  // Sleep to allow threads to finish remaining work
-  std::this_thread::sleep_for(std::chrono::seconds(1));
-
   // Kill workers
   for (auto w : workers) {
     w->kill();
-  }
-
-  // Wait for threads to exit
-  for (auto w : workers) {
     w->join();
+    delete w;
   }
 
-  // Print remaining matches
   mc.dumpMatches();
+
+  exit(0);
 }
