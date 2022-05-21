@@ -11,19 +11,22 @@
 
 class SubStringWorker {
   public:
-    char* mSubstr;
+    std::string mMatch;
     std::thread mThread;
     std::mutex mMutex;
     std::queue<std::shared_ptr<FileObject>> mQueue;
     std::condition_variable mCondVar;
     bool mKill;
+    bool mThreadStarted;
 
-    SubStringWorker(char* substr);
+    SubStringWorker() = default;
 
     static void worker(SubStringWorker* w);
     void enqueue(std::shared_ptr<FileObject> fileobj);
     void join();
     void kill();
+    bool setMatch(std::string match);
+    bool start();
 };
 
 #endif

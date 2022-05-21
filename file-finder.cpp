@@ -40,7 +40,10 @@ int main(int argc, char** argv) {
   std::vector<SubStringWorker*> workers;
 
   for (int i = 0; i < search_substrs_count; ++i) {
-    workers.push_back(new SubStringWorker(search_substrs[i]));
+    auto worker = new SubStringWorker();
+    worker->setMatch(search_substrs[i]);
+    worker->start();
+    workers.push_back(worker);
   }
 
   // Recursively iterate through directory and enqueue filenames
