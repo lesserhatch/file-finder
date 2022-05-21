@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "FileObject.h"
 #include "SubStringWorker.h"
 
 namespace fs = std::filesystem;
@@ -43,8 +44,7 @@ int main(int argc, char** argv) {
 
   // Recursively iterate through directory and enqueue filenames
   for (auto const& dir_entry : fs::recursive_directory_iterator(root_dir)) {
-    std::string filename = dir_entry.path().filename();
-    std::shared_ptr<FileObject> fileobj = std::make_shared<FileObject>(filename);
+    std::shared_ptr<FileObject> fileobj = std::make_shared<FileObject>(dir_entry);
 
     for (auto w : workers) {
       w->enqueue(fileobj);

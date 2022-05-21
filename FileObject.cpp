@@ -2,10 +2,14 @@
 
 #include "FileObject.h"
 
-FileObject::FileObject(std::string str) : filename(str) {
-  printf("<%s> FileObject::FileObject()\n", filename.c_str());
+FileObject::FileObject(std::filesystem::directory_entry de) : mDirEntry(de) {}
+
+FileObject::~FileObject() {}
+
+std::string FileObject::getFilename() {
+  return mDirEntry.path().filename();
 }
 
-FileObject::~FileObject() {
-  printf("<%s> ~FileObject::FileObject()\n", filename.c_str());
+std::string FileObject::getFilepath() {
+  return mDirEntry.path();
 }

@@ -9,17 +9,17 @@ SubStringWorker::SubStringWorker(char* substr) : mSubstr(substr) {
 }
 
 void SubStringWorker::worker(SubStringWorker* w) {
-  DBG_printf("<%s> starting worker\n", w->mSubstr);
+  // DBG_printf("<%s> starting worker\n", w->mSubstr);
 
   while(true) {
-    DBG_printf("<%s> waiting for item in queue\n", w->mSubstr);
+    // DBG_printf("<%s> waiting for item in queue\n", w->mSubstr);
     std::unique_lock lk(w->mMutex);
     w->mCondVar.wait(lk, [w] {
       return w->mKill || !w->mQueue.empty();
     });
 
     if (w->mKill) {
-      DBG_printf("<%s> was killed\n", w->mSubstr);
+      // DBG_printf("<%s> was killed\n", w->mSubstr);
       return;
     }
 
@@ -27,18 +27,22 @@ void SubStringWorker::worker(SubStringWorker* w) {
     w->mQueue.pop();
     lk.unlock();
 
-    DBG_printf("<%s> filename = %s\n", w->mSubstr, fileobj.get()->filename.c_str());
+    std::string filename = fileobj.get()->getFilename();
+
+    if (filename.find(w->mSubstr) != std::string::npos) {
+      DBG_printf("<%s> Match found! Filename = %s\n", w->mSubstr, fileobj.get()->getFilepath().c_str());
+    }
   }
 }
 
 void SubStringWorker::enqueue(std::shared_ptr<FileObject> fileobj) {
-  DBG_printf("<main> waiting on queuefileobj mutex <%s>\n", mSubstr);
+  // DBG_printf("<main> waiting on queue mutex <%s>\n", mSubstr);
   {
     std::lock_guard lk(mMutex);
     mQueue.push(fileobj);
   }
   mCondVar.notify_one();
-  DBG_printf("<main> added %s to <%s>\n", fileobj.get()->filename.c_str(), mSubstr);
+  // DBG_printf("<main> added %s to <%s>\n", fileobj.get()->filename.c_str(), mSubstr);
 }
 
 void SubStringWorker::join() {
@@ -51,5 +55,5 @@ void SubStringWorker::kill() {
     mKill = true;
   }
   mCondVar.notify_one();
-  DBG_printf("<main> send kill signal to <%s>\n", mSubstr);
+  // DBG_printf("<main> send kill signal to <%s>\n", mSubstr);
 }
