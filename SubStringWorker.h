@@ -26,7 +26,7 @@ class SubStringWorker {
     void enqueue(std::shared_ptr<FileObject> fileobj);
     void join();
     void kill();
-    bool setMatch(std::string match);
+    bool setMatch(char* const match);
     bool setMatchContainer(MatchContainer* mc);
     bool start();
 };

@@ -60,7 +60,7 @@ void SubStringWorker::kill() {
   mCondVar.notify_one();
 }
 
-bool SubStringWorker::setMatch(std::string match) {
+bool SubStringWorker::setMatch(char* const match) {
   if (mThreadStarted) {
     return false;
   }
