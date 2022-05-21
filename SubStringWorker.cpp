@@ -2,44 +2,49 @@
 
 #include "SubStringWorker.h"
 
-#define DBG_printf printf
-
 void SubStringWorker::worker(SubStringWorker* w) {
-  // DBG_printf("<%s> starting worker\n", w->mMatch.c_str());
-
   while(true) {
-    // DBG_printf("<%s> waiting for item in queue\n", w->mMatch.c_str());
     std::unique_lock lk(w->mMutex);
+
+    // Wait for mutex and either
+    //    a) kill signal
+    //    b) queue filled
     w->mCondVar.wait(lk, [w] {
       return w->mKill || !w->mQueue.empty();
     });
 
     if (w->mKill) {
-      // DBG_printf("<%s> was killed\n", w->mMatch.c_str());
+      // Thread is being killed; early return
       return;
     }
 
+    // Create a local copy of the shared pointer to the file
+    // object then remove the original from the queue.
     std::shared_ptr<FileObject> fileobj = w->mQueue.front();
     w->mQueue.pop();
+
+    // Queue operations are complete, release the mutex
     lk.unlock();
 
+    // Search this filename for the match pattern
     std::string filename = fileobj.get()->getFilename();
 
     if (filename.find(w->mMatch) != std::string::npos) {
+      // A match was found! Add it to the match container.
       w->mMatchContainer->addMatch(fileobj.get()->getFilepath());
-      // DBG_printf("<%s> Match found! Filename = %s\n", w->mMatch.c_str(), fileobj.get()->getFilepath().c_str());
     }
   }
 }
 
 void SubStringWorker::enqueue(std::shared_ptr<FileObject> fileobj) {
-  // DBG_printf("<main> waiting on queue mutex <%s>\n", mMatch.c_str());
   {
     std::lock_guard lk(mMutex);
     mQueue.push(fileobj);
   }
+
+  // Notify outside of the lock guard scope otherwise the listener
+  // will still see the locked mutex
   mCondVar.notify_one();
-  // DBG_printf("<main> added %s to <%s>\n", fileobj.get()->filename.c_str(), mMatch.c_str());
 }
 
 void SubStringWorker::join() {
@@ -51,8 +56,10 @@ void SubStringWorker::kill() {
     std::lock_guard lk(mMutex);
     mKill = true;
   }
+
+  // Notify outside of the lock guard scope otherwise the listener
+  // will still see the locked mutex
   mCondVar.notify_one();
-  // DBG_printf("<main> send kill signal to <%s>\n", mMatch.c_str());
 }
 
 bool SubStringWorker::setMatch(std::string match) {
