@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "MatchContainer.h"
 
 void MatchContainer::addMatch(std::string filepath) {
@@ -9,7 +11,7 @@ void MatchContainer::dumpMatches() {
   std::lock_guard lk(mMutex);
 
   for (auto const& match : mMatches) {
-    printf("%s\n", match.c_str());
+    std::cout << match << std::endl;
   }
 
   mMatches.clear();
