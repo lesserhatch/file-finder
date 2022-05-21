@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "FileObject.h"
+#include "MatchContainer.h"
 #include "SubStringWorker.h"
 
 namespace fs = std::filesystem;
@@ -36,12 +37,16 @@ int main(int argc, char** argv) {
   const int search_substrs_count = argc - 2;
   char* const* const search_substrs = &argv[2];
 
+  // Create match container
+  auto mc = MatchContainer();
+
   // Create workers
   std::vector<SubStringWorker*> workers;
 
   for (int i = 0; i < search_substrs_count; ++i) {
     auto worker = new SubStringWorker();
     worker->setMatch(search_substrs[i]);
+    worker->setMatchContainer(&mc);
     worker->start();
     workers.push_back(worker);
   }
@@ -81,6 +86,9 @@ int main(int argc, char** argv) {
       }
     }
 
+    // Print matches per directory
+    mc.dumpMatches();
+
     dirQueue.pop();
   }
 
@@ -96,4 +104,7 @@ int main(int argc, char** argv) {
   for (auto w : workers) {
     w->join();
   }
+
+  // Print remaining matches
+  mc.dumpMatches();
 }

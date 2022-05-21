@@ -26,7 +26,8 @@ void SubStringWorker::worker(SubStringWorker* w) {
     std::string filename = fileobj.get()->getFilename();
 
     if (filename.find(w->mMatch) != std::string::npos) {
-      DBG_printf("<%s> Match found! Filename = %s\n", w->mMatch.c_str(), fileobj.get()->getFilepath().c_str());
+      w->mMatchContainer->addMatch(fileobj.get()->getFilepath());
+      // DBG_printf("<%s> Match found! Filename = %s\n", w->mMatch.c_str(), fileobj.get()->getFilepath().c_str());
     }
   }
 }
@@ -60,6 +61,16 @@ bool SubStringWorker::setMatch(std::string match) {
   }
 
   mMatch = match;
+
+  return true;
+}
+
+bool SubStringWorker::setMatchContainer(MatchContainer* mc) {
+  if (mThreadStarted) {
+    return false;
+  }
+
+  mMatchContainer = mc;
 
   return true;
 }

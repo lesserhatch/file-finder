@@ -5,6 +5,7 @@
 #include <queue>
 
 #include "FileObject.h"
+#include "MatchContainer.h"
 
 #if !defined(SUBSTRINGWORKER_H)
 #define SUBSTRINGWORKER_H
@@ -18,6 +19,7 @@ class SubStringWorker {
     std::condition_variable mCondVar;
     bool mKill;
     bool mThreadStarted;
+    MatchContainer* mMatchContainer;
 
     SubStringWorker() = default;
 
@@ -26,6 +28,7 @@ class SubStringWorker {
     void join();
     void kill();
     bool setMatch(std::string match);
+    bool setMatchContainer(MatchContainer* mc);
     bool start();
 };
 
