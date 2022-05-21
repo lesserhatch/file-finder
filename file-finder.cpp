@@ -24,8 +24,7 @@ void print_usage() {
 void console_parser(MatchContainer* mc) {
   std::string command;
 
-  // Run until exit requested or command is exit
-  while (!(exitRequested || command == "exit")) {
+  while (command != "exit") {
     if (command == "dump") {
       mc->dumpMatches();
     }
@@ -34,6 +33,13 @@ void console_parser(MatchContainer* mc) {
 
   if (command == "exit") {
     exitRequested = true;
+  }
+}
+
+void periodic_dumper(MatchContainer* mc) {
+  while (!exitRequested) {
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    mc->dumpMatches();
   }
 }
 
@@ -46,8 +52,9 @@ int main(int argc, char** argv) {
   // Create match container
   auto mc = MatchContainer();
 
-  // Start console
+  // Start console and periodic dumper
   auto console = std::thread(console_parser, &mc);
+  auto dumper = std::thread(periodic_dumper, &mc);
 
   // Get the root directory from args
   char* const root_dir = argv[1];
@@ -109,8 +116,6 @@ int main(int argc, char** argv) {
       }
     }
 
-    mc.dumpMatches();
-
     dirQueue.pop();
   }
 
@@ -121,6 +126,9 @@ int main(int argc, char** argv) {
     delete w;
   }
 
+  workers.clear();
+
+  // Dump any remaining matches
   mc.dumpMatches();
 
   exit(0);
