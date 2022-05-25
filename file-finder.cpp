@@ -48,18 +48,17 @@ int main(int argc, char** argv) {
     exit(0);
   }
 
-  // Create match container
-  auto mc = MatchContainer();
-
-  // Start console and periodic dumper
-  auto console = std::thread(console_parser, &mc);
-  auto dumper = std::thread(periodic_dumper, &mc);
-
   // Get the root directory from args
   char* const root_dir = argv[1];
 
-  if (!fs::is_directory(fs::status(root_dir))) {
-    std::cout << "Error: " << root_dir << " is not a directory!" << std::endl;
+  try {
+    if (!fs::is_directory(fs::status(root_dir))) {
+      std::cout << "Error: " << root_dir << " is not a directory!" << std::endl;
+      print_usage();
+      exit(0);
+    }
+  } catch (fs::filesystem_error e) {
+    std::cout << "Error: " << e.what() << std::endl;
     print_usage();
     exit(0);
   }
@@ -67,6 +66,13 @@ int main(int argc, char** argv) {
   // Get search substrings from args
   const int search_substrs_count = argc - 2;
   char* const* const search_substrs = &argv[2];
+
+  // Create match container
+  auto mc = MatchContainer();
+
+  // Start console and periodic dumper
+  auto console = std::thread(console_parser, &mc);
+  auto dumper = std::thread(periodic_dumper, &mc);
 
   // Create workers
   std::vector<SubStringWorker*> workers;
@@ -98,21 +104,26 @@ int main(int argc, char** argv) {
   while (!(exitRequested || dirQueue.empty())) {
     auto dir = dirQueue.front();
 
-    for (auto const& dir_entry : fs::directory_iterator(dir, fs::directory_options::skip_permission_denied, ec)) {
-      if (ec) {
-        continue;
-      }
+    try {
 
-      if (fs::is_directory(dir_entry.path())) {
-        dirQueue.push(dir_entry.path());
-        continue;
-      }
+      for (auto const& dir_entry : fs::directory_iterator(dir, fs::directory_options::skip_permission_denied, ec)) {
+        if (ec) {
+          continue;
+        }
 
-      std::shared_ptr<FileObject> fileobj = std::make_shared<FileObject>(dir_entry);
+        if (fs::is_directory(dir_entry.path())) {
+          dirQueue.push(dir_entry.path());
+          continue;
+        }
 
-      for (auto w : workers) {
-        w->enqueue(fileobj);
+        std::shared_ptr<FileObject> fileobj = std::make_shared<FileObject>(dir_entry);
+
+        for (auto w : workers) {
+          w->enqueue(fileobj);
+        }
       }
+    } catch (fs::filesystem_error e) {
+      std::cout << "Error: " << e.what() << std::endl;
     }
 
     dirQueue.pop();
