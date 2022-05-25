@@ -20,7 +20,7 @@ class SubStringWorker {
     bool mThreadStarted;
     MatchContainer* mMatchContainer;
 
-    SubStringWorker() = default;
+    SubStringWorker();
 
     static void worker(SubStringWorker* w);
     void enqueue(std::shared_ptr<FileObject> fileobj);

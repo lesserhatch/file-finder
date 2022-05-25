@@ -1,5 +1,10 @@
 #include "SubStringWorker.h"
 
+SubStringWorker::SubStringWorker() :
+  mKill(false),
+  mThreadStarted(false),
+  mMatchContainer(nullptr) {}
+
 void SubStringWorker::worker(SubStringWorker* w) {
   while(true) {
     std::unique_lock lk(w->mMutex);
@@ -28,8 +33,10 @@ void SubStringWorker::worker(SubStringWorker* w) {
     std::string filename = fileobj.get()->getFilename();
 
     if (filename.find(w->mMatch) != std::string::npos) {
-      // A match was found! Add it to the match container.
-      w->mMatchContainer->addMatch(fileobj.get()->getFilepath());
+      if (w->mMatchContainer != nullptr) {
+        // A match was found! Add it to the match container.
+        w->mMatchContainer->addMatch(fileobj.get()->getFilepath());
+      }
     }
   }
 }
